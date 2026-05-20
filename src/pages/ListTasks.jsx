@@ -16,22 +16,21 @@ const ListTasks = () => {
   });
 
   const [filter, setFilter] = useState("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
+  const[searchQuery,setSearchQuery]=useState("");
+
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState("");
   const [activeDropdownId, setActiveDropdownId] = useState(null);
 
   const filteredTasks = tasks.filter((task) => {
-    const matchesFilter =
-      filter === "ACTIVE"
-        ? !task.completed
-        : filter === "COMPLETED"
-        ? task.completed
-        : true;
-    const matchesSearch = task.text
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
+    const matchFilter=
+    filter==="ACTIVE"
+    ? !task.completed
+    : filter==="COMPLETED"
+    ? task.completed
+    : true;
+   const matchSearch=task.text.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchFilter && matchSearch;
   });
 
   const startEditing = (task) => {
@@ -61,6 +60,27 @@ const ListTasks = () => {
     if (e.key === "Escape") setEditingId(null);
   };
 
+  const restoreDeletedTask = (taskToRestore) => {
+    let deletedTasks = localStorage.getItem("deleted_tasks");
+    if (deletedTasks) {
+      deletedTasks = JSON.parse(deletedTasks).filter(
+        (t) => t.id !== taskToRestore.id
+      );
+      localStorage.setItem("deleted_tasks", JSON.stringify(deletedTasks));
+    }
+
+    setTasks((prevTasks) => {
+      if (prevTasks.some((t) => t.id === taskToRestore.id)) return prevTasks;
+      const updatedTasks = [...prevTasks, taskToRestore];
+      localStorage.setItem("tasks", JSON.stringify(updatedTasks));
+      return updatedTasks;
+    });
+
+    toast.success("Action undone.", {
+      style: { background: "#000000", color: "#ffffff" },
+    });
+  };
+
   const deleteTask = (id) => {
     let deletedTasks = localStorage.getItem("deleted_tasks");
     if (deletedTasks == null) deletedTasks = [];
@@ -77,6 +97,10 @@ const ListTasks = () => {
     localStorage.setItem("tasks", JSON.stringify(updatedTasks));
     toast.warning("Task permanently removed.", {
       style: { background: "#000000", color: "#ffffff" },
+      action: {
+        label: "Undo",
+        onClick: () => restoreDeletedTask(deletedTask),
+      },
     });
   };
 
@@ -112,6 +136,11 @@ const ListTasks = () => {
 
   return (
     <div className={`min-h-screen p-6 font-sans antialiased transition-colors duration-300 ${dark ? "bg-zinc-950" : "bg-[#FDFDFD]"}`}>
+      {/* React 19 Document Metadata Hoisting */}
+      <title>Task List & Roadmaps — Dev Tasks (devtasks)</title>
+      <meta name="description" content="View, search, filter, edit, and update active developer tasks and roadmaps. Manage bug tracking lists, refactor plans, and features." />
+      <meta name="keywords" content="devtasks, dev tasks, list-tasks, add lists, engineering roadmaps, todo lists" />
+
       <div className={`max-w-2xl mx-auto rounded-4xl shadow-lg p-8 border transition-colors duration-300 ${dark ? "bg-zinc-900 border-zinc-700" : "bg-white border-neutral-100"}`}>
         <div className="flex justify-between items-center mb-8">
           <h1 className={`text-3xl font-black uppercase ${dark ? "text-white" : "text-black"}`}>
@@ -120,18 +149,19 @@ const ListTasks = () => {
           <ThemeToggle />
         </div>
 
-        {/* Search Bar */}
+        {/* Search bar */}
         <input
           type="text"
-          placeholder="SEARCH TASKS..."
+          id="search-tasks-input"
+          placeholder="Search tasks..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className={`w-full mb-4 px-4 py-3 rounded-2xl border-2 outline-none font-black uppercase tracking-widest text-sm transition-all duration-200 ${
-            dark
-              ? "bg-zinc-800 text-white border-zinc-700 focus:border-white placeholder-zinc-500"
-              : "bg-neutral-50 text-black border-neutral-200 focus:border-black placeholder-neutral-400"
-          }`}
-        />
+           className={`w-full mb-4 px-4 py-3 rounded-2xl border-2 outline-none font-black uppercase tracking-widest text-sm transition-all duration-200
+    ${dark
+      ? "bg-zinc-800 text-white border-zinc-700 focus:border-white placeholder-zinc-500"
+      : "bg-neutral-50 text-black border-neutral-200 focus:border-black placeholder-neutral-400"
+    }`}
+/>
 
         {/* Filter Navigation */}
         <div className="flex justify-center mb-6">
@@ -154,16 +184,16 @@ const ListTasks = () => {
           </div>
         </div>
 
-        {filteredTasks.length === 0 ? (
-          <p className="text-center text-neutral-400 font-medium py-8">
-            {searchQuery
-              ? "No tasks match your search."
-              : filter === "ACTIVE"
-              ? "No active tasks. You're all caught up!"
-              : filter === "COMPLETED"
-              ? "No completed tasks yet."
-              : "No tasks added yet."}
-          </p>
+    {filteredTasks.length === 0 ? (
+  <p className="text-center text-neutral-400 font-medium py-8">
+    {searchQuery
+      ? "No tasks match your search."
+      : filter === "ACTIVE"
+      ? "No active tasks. You're all caught up!"
+      : filter === "COMPLETED"
+      ? "No completed tasks yet."
+      : "No tasks added yet."}
+  </p>
         ) : (
           <ul className="space-y-4">
             {filteredTasks.map((task) => (
@@ -200,44 +230,56 @@ const ListTasks = () => {
                         >
                           {task.text}
                         </span>
-
-                        {/* Category Badge with Dropdown */}
                         <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setActiveDropdownId(
-                                activeDropdownId === task.id ? null : task.id
-                              )
-                            }
-                            className={`text-[11px] font-black uppercase px-2 py-1 rounded-full cursor-pointer transition-all duration-200 ${
-                              dark
-                                ? "bg-zinc-700 text-neutral-300 hover:bg-zinc-600"
-                                : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+  <button
+    type="button"
+    onClick={() =>
+      setActiveDropdownId(
+        activeDropdownId === task.id ? null : task.id
+      )
+    }
+    className={`text-[11px] font-black uppercase px-2 py-1 rounded-full cursor-pointer transition-all duration-200 ${
+      dark
+        ? "bg-zinc-700 text-neutral-300 hover:bg-zinc-600"
+        : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+    }`}
+  >
+    {task.category ?? "TASK"}
+  </button>
+
+  {activeDropdownId === task.id && (
+    <div className={`absolute top-7 left-0 z-10 rounded-xl shadow-lg border p-2 flex flex-col gap-1 min-w-[120px] ${dark ? "bg-zinc-800 border-zinc-700" : "bg-white border-neutral-200"}`}>
+      {categories.map((cat) => (
+        <button
+          key={cat}
+          type="button"
+          onClick={() => updateCategory(task.id, cat)}
+          className={`text-[11px] font-black uppercase px-2 py-1 rounded-lg text-left transition-all duration-200 ${
+            task.category === cat
+              ? dark ? "bg-white text-black" : "bg-black text-white"
+              : dark ? "text-neutral-300 hover:bg-zinc-700" : "text-neutral-700 hover:bg-neutral-100"
+          }`}
+        >
+          {cat}
+        </button>
+      ))}
+    </div>
+  )}
+</div>
+
+                        {task.priority && (
+                          <span
+                            className={`text-[11px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${
+                              task.priority === "HIGH"
+                                ? "bg-red-500/10 text-red-500"
+                                : task.priority === "MEDIUM"
+                                ? "bg-yellow-500/10 text-yellow-600"
+                                : "bg-blue-500/10 text-blue-500"
                             }`}
                           >
-                            {task.category ?? "TASK"}
-                          </button>
-
-                          {activeDropdownId === task.id && (
-                            <div className={`absolute top-7 left-0 z-10 rounded-xl shadow-lg border p-2 flex flex-col gap-1 min-w-[120px] ${dark ? "bg-zinc-800 border-zinc-700" : "bg-white border-neutral-200"}`}>
-                              {categories.map((cat) => (
-                                <button
-                                  key={cat}
-                                  type="button"
-                                  onClick={() => updateCategory(task.id, cat)}
-                                  className={`text-[11px] font-black uppercase px-2 py-1 rounded-lg text-left transition-all duration-200 ${
-                                    task.category === cat
-                                      ? dark ? "bg-white text-black" : "bg-black text-white"
-                                      : dark ? "text-neutral-300 hover:bg-zinc-700" : "text-neutral-700 hover:bg-neutral-100"
-                                  }`}
-                                >
-                                  {cat}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                            {task.priority}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
